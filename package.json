@@ -1,0 +1,12 @@
+{
+  "name": "chatclient",
+  "description": "Minecraft chat program available on the web.",
+  "main": "chatClient.js",
+  "author": "yeondu1062",
+  "license": "MIT",
+  "dependencies": {
+    "bedrock-protocol": "^3.44.0",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
