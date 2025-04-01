@@ -7,6 +7,7 @@
 */
 
 const { Server } = require('socket.io');
+const { exec } = require('child_process');
 const address = require('./serverAddr.json');
 const bedrock = require('bedrock-protocol');
 const express = require('express');
@@ -20,15 +21,18 @@ const client = bedrock.createClient(address);
 const io = new Server(server);
 
 function getInternalIp() {
-  for(const interfaceName in os.networkInterfaces()) {
-    for(const iface of os.networkInterfaces()[interfaceName]) {
-      if(iface.family == 'IPv4' && !iface.internal) return iface.address;
-    }
-  }
+  return Object.values(os.networkInterfaces())
+    .flat()
+    .find(iface => iface.family === 'IPv4' && !iface.internal)?.address;
 }
 
-server.listen(3000, () => { console.log('웹 서버가 http://' + getInternalIp() + ':3000 에서 실행 중입니다.'); });
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'html', 'index.html')); });
+server.listen(3000, () => {
+  const url = `http://${getInternalIp()}:3000`;
+  console.log(`웹 서버가 ${url}에서 실행 중입니다.`);
+  if(process.platform === 'win32') exec('start ' + url);
+});
+
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'html', 'index.html')));
 
 client.on('text', packet => {
   if (packet.source_name == client.username) return;
@@ -36,7 +40,7 @@ client.on('text', packet => {
     case 'chat':
       io.emit('chat_message', `<${packet.source_name}> ${packet.message}`); break;
     case 'whisper':
-      io.emit('chat_message', `[귓속말] <${packet.source_name}> ${packet.message}`); break;
+      io.emit('whisper_message', `<${packet.source_name}> ${packet.message}`); break;
     case 'translation':
       if(packet.message == '§e%multiplayer.player.joined') io.emit('system_message', packet.parameters[0] + '이(가) 게임에 참여했습니다.');
       if(packet.message == '§e%multiplayer.player.left') io.emit('system_message', packet.parameters[0] + '이(가) 게임을 떠났습니다.');
